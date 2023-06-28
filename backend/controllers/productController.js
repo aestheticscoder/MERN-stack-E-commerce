@@ -1,6 +1,7 @@
 const Product = require("../models/productModel");
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middleware/catchAsyncErrors");
+const ApiFeatures = require("../utils/apiFeatures");
 
 // Create Products (Admin)
 exports.createProduct = catchAsyncErrors(async (req, res, next) => {
@@ -13,19 +14,27 @@ exports.createProduct = catchAsyncErrors(async (req, res, next) => {
 
 // Get all Products
 exports.getAllProducts = catchAsyncErrors(async (req, res) => {
-  const products = await Product.find();
+  const resultPerPage = 5;
+  const productCount = await Product.countDocuments();
+  const apiFeature = new ApiFeatures(Product.find(), req.query)
+    .search()
+    .filter()
+    .pagination(resultPerPage);
+  const products = await apiFeature.query;
   res.status(200).json({ status: true, products: products });
 });
 
 // Get a single product by ID
-exports.getProductById = catchAsyncErrors( async (req, res, next) => {
+exports.getProductById = catchAsyncErrors(async (req, res, next) => {
   const product = await Product.findById(req.params.id);
+  const productCount = await Product.countDocuments(); // Retrieve productCount
 
   if (!product) {
     return next(new ErrorHandler("Product Not Found", 404));
   }
-  return res.status(200).json({ status: true, product: product });
+  return res.status(200).json({ status: true, product: product, productCount: productCount });
 });
+
 
 // Update Product (Admin)
 exports.updateProduct = catchAsyncErrors(async (req, res, next) => {
@@ -52,5 +61,4 @@ exports.deleteProduct = catchAsyncErrors(async (req, res, next) => {
   res
     .status(200)
     .json({ status: true, message: "Product Deleted Successfully" });
-}
-);
+});
